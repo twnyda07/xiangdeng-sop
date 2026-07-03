@@ -262,7 +262,7 @@ DATA.extracts.forEach((e,i)=>{
   if(ig) body+='<div class="infogrid">'+ig+'</div>';
   if(e.roster && e.roster.length){
     body+='<div class="roster"><div class="roster-h">👥 人員編制（去識別化，'+e.roster.length+' 人）</div>'+
-      e.roster.map(p=>'<div class="rperson"><span class="rnum">人員'+p.num+'</span><span class="rkind '+(p.kind==='法師'?'k-f':'k-l')+'">'+esc(p.kind)+'</span><span class="rrole">'+esc(p.role)+'</span><div class="rduty">'+esc(p.dutiesSummary)+'</div></div>').join('')+'</div>';
+      e.roster.map(p=>'<div class="rperson"><span class="rnum">人員'+p.num+(p.name?'（'+esc(p.name)+'）':'')+'</span><span class="rkind '+(p.kind==='法師'?'k-f':'k-l')+'">'+esc(p.kind)+'</span><span class="rrole">'+esc(p.role)+'</span><div class="rduty">'+esc(p.dutiesSummary)+'</div></div>').join('')+'</div>';
   }
   if(e.manpower){
     const mp=e.manpower, hasC=mp.conflicts&&mp.conflicts.length;
