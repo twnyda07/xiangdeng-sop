@@ -79,7 +79,17 @@ h1{margin:0;font-size:31px;letter-spacing:1.5px;color:#2a2016}
 .tl-node{position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;background:var(--gold);color:#fff;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(138,90,6,.4)}
 .tl-item h4{margin:3px 0 9px;font-size:18.5px;color:#5a3d05;font-weight:800;padding-bottom:6px;border-bottom:2px solid var(--line2)}
 .tl-item ul,.dgroup ul{margin:0 0 4px;padding-left:0;list-style:none}
-.tl-item li,.dgroup li{margin:10px 0;font-size:16.5px;color:#463726;line-height:1.68;display:flex;align-items:flex-start}
+.tl-item li,.dgroup li{margin:11px 0;font-size:16.5px;color:#463726;line-height:1.68}
+.tl-item li{display:flex;align-items:flex-start}
+.tl-item li .ptw{flex:1;min-width:0;overflow-wrap:anywhere}
+.dgroup li{position:relative;padding-left:17px}
+.dgroup li::before{content:"›";position:absolute;left:2px;color:var(--gold);font-weight:800}
+.pts{margin:7px 0 3px;padding-left:2px;list-style:none}
+.pts li{margin:6px 0;position:relative;padding-left:16px;display:block}
+.pts li::before{content:"・";position:absolute;left:0;color:#c3ad82}
+.pts.sub{margin:5px 0 2px}
+.pts.sub li::before{content:"–";left:1px;color:#b8a074}
+.pt-lead{font-weight:700;color:#3a2c1a}
 .dgroup{margin:15px 0}
 .dgh{font-weight:800;font-size:17.5px;padding-bottom:6px;margin-bottom:9px;border-bottom:2px solid var(--line2);display:flex;align-items:center;gap:8px}
 .dgh .n{font-size:14px;color:var(--muted);font-weight:700}
@@ -169,6 +179,16 @@ function esc(t){const d=document.createElement('div');d.textContent=t==null?"":t
 function cite(t){return esc(t).replace(/（來源：([^）]*)）/g,'<span class="cite">$1</span>').replace(/\(來源：([^\)]*)\)/g,'<span class="cite">$1</span>');}
 function fileUrl(s){return (s.fileId&&/^[A-Za-z0-9_-]{20,}$/.test(s.fileId))?"https://drive.google.com/file/d/"+s.fileId+"/view":null;}
 function chip(dk){const d=DMETA[dk];return '<span class="dchip" title="'+d.name+'" style="background:'+d.c+'">'+d.s+'</span>';}
+// 括號感知分點器：把長句／段落拆成清楚的條列小點
+const OPENP='（(〔［【「｛', CLOSEP='）)〕］】」｝';
+function splitTop(text,delims){let d=0,cur='',out=[];for(const ch of text){if(OPENP.indexOf(ch)>=0)d++;else if(CLOSEP.indexOf(ch)>=0){if(d>0)d--;}
+  if(d===0&&delims.indexOf(ch)>=0){if(cur.trim())out.push(cur.trim());cur='';}else cur+=ch;} if(cur.trim())out.push(cur.trim());return out;}
+function renderSeg(seg){const ci=seg.indexOf('：');
+  if(ci>0){const parts=splitTop(seg.slice(ci+1),'、／');
+    if(parts.length>=3) return '<span class="pt-lead">'+cite(seg.slice(0,ci))+'：</span><ul class="pts sub">'+parts.map(p=>'<li>'+cite(p)+'</li>').join('')+'</ul>';}
+  return cite(seg);}
+function renderTask(t){const segs=splitTop(t,'；＞');return segs.length>=2?'<ul class="pts">'+segs.map(s=>'<li>'+renderSeg(s)+'</li>').join('')+'</ul>':renderSeg(t);}
+function renderInfo(t){const segs=splitTop(t,'。；');return segs.length>=2?'<ul class="pts">'+segs.map(s=>'<li>'+renderSeg(s)+'</li>').join('')+'</ul>':renderSeg(t);}
 
 document.getElementById('statbar').innerHTML =
   [['f','完整 SOP','full'],['p','片段線索','partial'],['m','僅影音','media'],['e','待補件','empty']]
@@ -204,21 +224,21 @@ DATA.extracts.forEach((e,i)=>{
   if(e.sop.stages.length){
     let tl='<div class="timeline">'+e.sop.stages.map((s,si)=>
       '<div class="tl-item"><div class="tl-node">'+(si+1)+'</div><h4>'+esc(s.stage)+'</h4><ul>'+
-      s.tasks.map(t=>'<li>'+chip(t.d)+'<span>'+cite(t.t)+'</span></li>').join('')+'</ul></div>').join('')+'</div>';
+      s.tasks.map(t=>'<li>'+chip(t.d)+'<div class="ptw">'+renderTask(t.t)+'</div></li>').join('')+'</ul></div>').join('')+'</div>';
     let dv='<div class="view-duty" hidden>'+DORDER.map(dk=>{
       const items=allTasks.filter(t=>t.d===dk); if(!items.length) return '';
       const d=DMETA[dk];
       return '<div class="dgroup"><div class="dgh" style="color:'+d.c+'">'+chip(dk)+d.name+'<span class="n">（'+items.length+'）</span></div><ul>'+
-        items.map(t=>'<li>'+cite(t.t)+'</li>').join('')+'</ul></div>';
+        items.map(t=>'<li>'+renderTask(t.t)+'</li>').join('')+'</ul></div>';
     }).join('')+'</div>';
     body+='<div class="viewswitch"><button class="vs on" data-v="time">⏱ 時序</button><button class="vs" data-v="duty">🗂 職能</button></div>'+
       '<div class="view-time">'+tl+'</div>'+dv;
   }
 
   let ig='';
-  if(e.sop.altarLayout) ig+='<div class="info"><div class="info-h">🪷 壇場・版位布置</div><div class="info-b">'+cite(e.sop.altarLayout)+'</div></div>';
-  if(e.sop.offerings) ig+='<div class="info"><div class="info-h">🍎 供品（香花燈燭水果）</div><div class="info-b">'+cite(e.sop.offerings)+'</div></div>';
-  if(e.sop.notes) ig+='<div class="info"><div class="info-h">🔔 法器・牌位・注意事項</div><div class="info-b">'+cite(e.sop.notes)+'</div></div>';
+  if(e.sop.altarLayout) ig+='<div class="info"><div class="info-h">🪷 壇場・版位布置</div><div class="info-b">'+renderInfo(e.sop.altarLayout)+'</div></div>';
+  if(e.sop.offerings) ig+='<div class="info"><div class="info-h">🍎 供品（香花燈燭水果）</div><div class="info-b">'+renderInfo(e.sop.offerings)+'</div></div>';
+  if(e.sop.notes) ig+='<div class="info"><div class="info-h">🔔 法器・牌位・注意事項</div><div class="info-b">'+renderInfo(e.sop.notes)+'</div></div>';
   if(ig) body+='<div class="infogrid">'+ig+'</div>';
   if(!e.hasAltarContent && e._cov) body+='<div class="lead">此法會雲端資料夾內<b>無香燈文字文件</b>。'+esc(e._cov)+'</div>';
   if(e.sources.length){
